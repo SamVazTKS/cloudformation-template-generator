@@ -1,6 +1,7 @@
-import parameters from "./components/parameters";
-import storage from "./components/storage";
-import cicd from "./components/cicd";
+import parameters from "./components/setup/parameters";
+import storage from "./components/setup/storage";
+import cicd  from "./components/frontend/cicd";
+
 const mernStack = async (config : any ) => ({
     AWSTemplateFormatVersion: "2010-09-09",
     Description: `Base Environment Configuration for basic MERN stack`,

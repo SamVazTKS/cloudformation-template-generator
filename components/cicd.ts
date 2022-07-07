@@ -1,6 +1,4 @@
-"use strict";
-
-export default (config : any ) => ({
+const cicd =(config : any ) => ({
   /*
     CI/CD Setup
   */
@@ -380,3 +378,5 @@ export default (config : any ) => ({
     },
   },
 });
+
+export default cicd;
