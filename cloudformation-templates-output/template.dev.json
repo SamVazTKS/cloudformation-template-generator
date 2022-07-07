@@ -1,0 +1,167 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Base Environment Configuration for basic MERN stack",
+  "Parameters": {
+    "ServerSSHAccessIp": {
+      "Type": "String",
+      "Description": "Your ip so you can access the server via SSH"
+    },
+    "ServerSSHKeyPair": {
+      "Type": "String",
+      "Description": "Your key pair so you can access the server via SSH"
+    },
+    "AwsRegion": {
+      "Type": "String",
+      "Default": "us-east-2",
+      "Description": "AWS Region to use"
+    },
+    "AwsAccountId": {
+      "Type": "String",
+      "Description": "AWS Account Id where this environment is being deployed"
+    },
+    "GitHubOAuthToken": {
+      "Type": "String",
+      "NoEcho": true,
+      "Description": "A GitHub Personal Access token of an account that has access to the backend and frontend repos"
+    },
+    "GitHubOwner": {
+      "Type": "String",
+      "Default": "Ksquare-University",
+      "AllowedPattern": "[A-Za-z0-9-]+",
+      "Description": "The name of the account that owns the repositories"
+    },
+    "GitHubRepoBackend": {
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z0-9-]+",
+      "Description": "The name of the backend repository (only name, not the whole url)"
+    },
+    "GitHubBranchBackend": {
+      "Type": "String",
+      "Default": "develop",
+      "AllowedPattern": "[A-Za-z0-9-/]+",
+      "Description": "The branch that we will be using to build this environment"
+    },
+    "GitHubRepoFrontend": {
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z0-9-]+",
+      "Description": "The name of the frontend repository (only name, not the whole url)"
+    },
+    "GitHubBranchFrontend": {
+      "Type": "String",
+      "Default": "develop",
+      "AllowedPattern": "[A-Za-z0-9-/]+",
+      "Description": "The branch that we will be using to build this environment"
+    },
+    "APIUrl": {
+      "Type": "String",
+      "Description": "The URL your frontend will use to communicate with your backend"
+    },
+    "CodedeployStartCmd": {
+      "Type": "String",
+      "Default": "npm run docker:dev",
+      "Description": "The command used by codedeploy when starting the app in the server"
+    }
+  },
+  "Resources": {
+    "appFilesBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "AccessControl": "Public",
+        "BucketName": "dev-hire-deploy-bucket",
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "AllowedHeaders": [
+                "*"
+              ],
+              "AllowedMethods": [
+                "PUT",
+                "GET"
+              ],
+              "AllowedOrigins": [
+                "*"
+              ],
+              "ExposedHeaders": [],
+              "MaxAge": 3000
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "dev-hire-deploy-bucket"
+          },
+          {
+            "Key": "Project",
+            "Value": "hire"
+          },
+          {
+            "Key": "Env",
+            "Value": "dev"
+          }
+        ]
+      },
+      "DeletionPolicy": "Delete"
+    },
+    "appContainerRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": "dev-hire-backend",
+        "RepositoryPolicyText": {
+          "Version": "2008-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowPushPull",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  {
+                    "Fn::GetAtt": [
+                      "appBackendBuildRole",
+                      "Arn"
+                    ]
+                  },
+                  {
+                    "Fn::GetAtt": [
+                      "appServerRole",
+                      "Arn"
+                    ]
+                  }
+                ]
+              },
+              "Action": [
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:PutImage",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload"
+              ]
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "dev-hireBackendContainerRepository"
+          },
+          {
+            "Key": "Project",
+            "Value": "hire"
+          },
+          {
+            "Key": "Env",
+            "Value": "dev"
+          }
+        ],
+        "WebsiteConfiguration": {
+          "ErrorDocument": "error.html",
+          "IndexDocument": "index.html",
+          "RedirectAllRequestsTo": "index.html"
+        }
+      }
+    }
+  },
+  "Outputs": {}
+}
