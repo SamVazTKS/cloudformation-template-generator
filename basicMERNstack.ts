@@ -7,7 +7,7 @@ const mernStack = async (config : any ) => ({
     Description: `Base Environment Configuration for basic MERN stack`,
     Parameters: await parameters(config),
     Resources: {
-      ...storage(config),
+    //  ...storage(config),
     //   ...server(config),
        ...cicd(config),
     //   ...(config.useRdsDB ? db(config) : {}),

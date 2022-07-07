@@ -39,11 +39,11 @@ const cicd =(config : any ) => ({
           ComputeType: "BUILD_GENERAL1_SMALL",
           Image: "aws/codebuild/standard:4.0",
           EnvironmentVariables: [
-            {
-              Name: "CLOUDFRONT_DIST_ID",
-              Type: "PLAINTEXT",
-              Value: { Ref: "appFrontendDistribution" },
-            },
+            // {
+            //   Name: "CLOUDFRONT_DIST_ID",
+            //   Type: "PLAINTEXT",
+            //   Value: { Ref: "appFrontendDistribution" },
+            // },
             {
               Name: "S3_BUCKET_NAME",
               Type: "PLAINTEXT",
