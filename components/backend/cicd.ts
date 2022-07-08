@@ -3,8 +3,48 @@ const cicd =(config : any ) => ({
     CI/CD Setup
   */
 
-  // CodeBuild - Builds the app, uploads it to S3 and resets the CloudFront cache
-  appFrontendBuildRole: {
+  // ECR - Hosts the Docker images for the app
+  appContainerRepository: {
+    Type: "AWS::ECR::Repository",
+    Properties: {
+      RepositoryName: `${config.env}-${config.appName}-backend`,
+      RepositoryPolicyText: {
+        Version: "2008-10-17",
+        Statement: [
+          {
+            Sid: "AllowPushPull",
+            Effect: "Allow",
+            Principal: {
+              AWS: [
+                { "Fn::GetAtt": ["appBackendBuildRole", "Arn"] },
+                { "Fn::GetAtt": ["appServerRole", "Arn"] },
+              ],
+            },
+            Action: [
+              "ecr:GetDownloadUrlForLayer",
+              "ecr:BatchGetImage",
+              "ecr:BatchCheckLayerAvailability",
+              "ecr:PutImage",
+              "ecr:InitiateLayerUpload",
+              "ecr:UploadLayerPart",
+              "ecr:CompleteLayerUpload",
+            ],
+          },
+        ],
+      },
+      Tags: [
+        {
+          Key: "Name",
+          Value: `${config.env}-${config.appName}BackendContainerRepository`,
+        },
+        { Key: "Project", Value: config.appName },
+        { Key: "Env", Value: config.env },
+      ],
+    },
+  },
+
+  // CodeBuild - Builds Docker images and uploads them to ECR
+  appBackendBuildRole: {
     Type: "AWS::IAM::Role",
     Properties: {
       AssumeRolePolicyDocument: {
@@ -17,20 +57,44 @@ const cicd =(config : any ) => ({
           Action: "sts:AssumeRole",
         },
       },
-      ManagedPolicyArns: [
-        "arn:aws:iam::aws:policy/AmazonS3FullAccess",
-        "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
-        "arn:aws:iam::aws:policy/CloudFrontFullAccess",
+      Policies: [
+        {
+          PolicyName: "root",
+          PolicyDocument: {
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Effect: "Allow",
+                Action: "events:*",
+                Resource: "*",
+              },
+              {
+                Action: [
+                  "ecr:BatchCheckLayerAvailability",
+                  "ecr:CompleteLayerUpload",
+                  "ecr:GetAuthorizationToken",
+                  "ecr:InitiateLayerUpload",
+                  "ecr:PutImage",
+                  "ecr:UploadLayerPart",
+                  "s3:GetObject",
+                ],
+                Resource: "*",
+                Effect: "Allow",
+              },
+            ],
+          },
+        },
       ],
+      ManagedPolicyArns: ["arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"],
     },
   },
 
-  appFrontendCodeBuild: {
+  appBackendCodeBuild: {
     Type: "AWS::CodeBuild::Project",
     Properties: {
-      Name: `${config.env}-${config.appName}-frontend`,
-      Description: `Builds and deploys ${config.env}-${config.appName}-frontend project`,
-      ServiceRole: { "Fn::GetAtt": ["appFrontendBuildRole", "Arn"] },
+      Name: `${config.env}-${config.appName}-backend`,
+      Description: `Builds ${config.appName} Docker image`,
+      ServiceRole: { "Fn::GetAtt": ["appBackendBuildRole", "Arn"] },
       Artifacts: {
         Type: "CODEPIPELINE",
       },
@@ -38,37 +102,44 @@ const cicd =(config : any ) => ({
         Type: "LINUX_CONTAINER",
         ComputeType: "BUILD_GENERAL1_SMALL",
         Image: "aws/codebuild/standard:4.0",
+        PrivilegedMode: true,
         EnvironmentVariables: [
           {
-            Name: "CLOUDFRONT_DIST_ID",
+            Name: "IMAGE_REPO_NAME",
             Type: "PLAINTEXT",
-            Value: { Ref: "appFrontendDistribution" },
+            Value: `${config.env}-${config.appName}-backend`,
           },
           {
-            Name: "S3_BUCKET_NAME",
+            Name: "IMAGE_TAG",
             Type: "PLAINTEXT",
-            Value: `${config.env}-${config.appName}-frontend-bucket`,
+            Value: `latest`,
           },
           {
-            Name: "REACT_APP_API_BASE_URL",
+            Name: "AWS_ACCOUNT_ID",
             Type: "PLAINTEXT",
-            Value: {
-              "Fn::Join": ["", ["https://", { Ref: "APIUrl" }, "/api/v1"]],
-            },
+            Value: { Ref: "AwsAccountId" },
           },
           {
-            Name: "REACT_APP_BASE_URL",
+            Name: "SSH_KEY",
             Type: "PLAINTEXT",
-            Value: {
-              "Fn::Join": ["", ["https://", { Ref: "APIUrl" }]],
-            },
+            Value: config.gitSSHKey,
+          },
+          {
+            Name: "SERVER_ADDRESS",
+            Type: "PLAINTEXT",
+            Value: { "Fn::GetAtt": ["server", "PrivateIp"] },
+          },
+          {
+            Name: "GIT_BRANCH",
+            Type: "PLAINTEXT",
+            Value: config.backendBranch,
           },
         ],
       },
       Source: {
         Type: "CODEPIPELINE",
       },
-      SourceVersion: { Ref: "GitHubBranchFrontend" },
+      SourceVersion: { Ref: "GitHubBranchBackend" },
       TimeoutInMinutes: 30,
       LogsConfig: {
         CloudWatchLogs: {
@@ -78,7 +149,7 @@ const cicd =(config : any ) => ({
       Tags: [
         {
           Key: "Name",
-          Value: `${config.env}-${config.appName}FrontendCodeBuild`,
+          Value: `${config.env}-${config.appName}BackendCodeBuild`,
         },
         { Key: "Project", Value: config.appName },
         { Key: "Env", Value: config.env },
@@ -86,16 +157,68 @@ const cicd =(config : any ) => ({
     },
   },
 
-  // CodePipeline - Orchestrates CI/CD, when a merge is done to main branch, CodeBuild is executed
-  appFrontendCodePipelineArtifactStore: {
+  // CodeDeploy - Deploys the app into the server
+  appCodeDeployApplicaton: {
+    Type: "AWS::CodeDeploy::Application",
+    Properties: {
+      ApplicationName: `${config.env}-${config.appName}-backend`,
+      ComputePlatform: "Server",
+      Tags: [
+        {
+          Key: "Name",
+          Value: `${config.env}-${config.appName}CodeDeployApplicaton`,
+        },
+        { Key: "Project", Value: config.appName },
+        { Key: "Env", Value: config.env },
+      ],
+    },
+  },
+
+  appCodeDeployServiceRole: {
+    Type: "AWS::IAM::Role",
+    Properties: {
+      AssumeRolePolicyDocument: {
+        Version: "2012-10-17",
+        Statement: {
+          Effect: "Allow",
+          Principal: {
+            Service: "codedeploy.amazonaws.com",
+          },
+          Action: "sts:AssumeRole",
+        },
+      },
+      ManagedPolicyArns: [
+        "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole",
+      ],
+    },
+  },
+
+  appCodeDeployDeploymentGroup: {
+    Type: "AWS::CodeDeploy::DeploymentGroup",
+    Properties: {
+      ApplicationName: { Ref: "appCodeDeployApplicaton" },
+      DeploymentGroupName: `${config.env}-${config.appName}-backend-deployment-group`,
+      Ec2TagFilters: [
+        {
+          Key: "Name",
+          Type: "KEY_AND_VALUE",
+          Value: `${config.env}-${config.appName}-server`,
+        },
+      ],
+      ServiceRoleArn: { "Fn::GetAtt": ["appCodeDeployServiceRole", "Arn"] },
+    },
+  },
+
+  // CodePipeline - Orchestrates CI/CD, when a merge is done to main branch, CodeBuild and then CodeDeploy are executed
+  appCodePipelineArtifactStore: {
     Type: "AWS::S3::Bucket",
     Properties: {
-      BucketName: `${config.env}-${config.appName}-frontend-codepipeline-artifactstore`,
+      BucketName: `${config.env}-${config.appName}-codepipeline-artifactstore`,
       AccessControl: "Private",
       Tags: [
         {
           Key: "Name",
-          Value: `${config.env}-${config.appName}FrontendCodePipelineArtifactStore`,
+          Value: `${config.env}-${config.appName}CodePipelineArtifactStore`,
         },
         { Key: "Project", Value: config.appName },
         { Key: "Env", Value: config.env },
@@ -103,7 +226,7 @@ const cicd =(config : any ) => ({
     },
   },
 
-  appFrontendCodePipelineServiceRole: {
+  appCodePipelineServiceRole: {
     Type: "AWS::IAM::Role",
     Properties: {
       AssumeRolePolicyDocument: {
@@ -286,7 +409,7 @@ const cicd =(config : any ) => ({
     },
   },
 
-  appFrontendCodePipelineWebhook: {
+  appCodePipelineWebhook: {
     Type: "AWS::CodePipeline::Webhook",
     Properties: {
       Authentication: "GITHUB_HMAC",
@@ -300,21 +423,21 @@ const cicd =(config : any ) => ({
         },
       ],
       TargetPipeline: {
-        Ref: "appFrontendCodePipeline",
+        Ref: "appCodePipeline",
       },
       TargetAction: "SourceAction",
-      Name: `${config.env}-${config.appName}FrontendCodePipelineWebhook`,
+      Name: `${config.env}-${config.appName}CodePipelineWebhook`,
       TargetPipelineVersion: {
-        "Fn::GetAtt": ["appFrontendCodePipeline", "Version"],
+        "Fn::GetAtt": ["appCodePipeline", "Version"],
       },
       RegisterWithThirdParty: true,
     },
   },
 
-  appFrontendCodePipeline: {
+  appCodePipeline: {
     Type: "AWS::CodePipeline::Pipeline",
     Properties: {
-      RoleArn: { "Fn::GetAtt": ["appFrontendCodePipelineServiceRole", "Arn"] },
+      RoleArn: { "Fn::GetAtt": ["appCodePipelineServiceRole", "Arn"] },
       Stages: [
         {
           Name: "Source",
@@ -330,8 +453,8 @@ const cicd =(config : any ) => ({
               OutputArtifacts: [{ Name: "SourceOutput" }],
               Configuration: {
                 Owner: { Ref: "GitHubOwner" },
-                Repo: { Ref: "GitHubRepoFrontend" },
-                Branch: { Ref: "GitHubBranchFrontend" },
+                Repo: { Ref: "GitHubRepoBackend" },
+                Branch: { Ref: "GitHubBranchBackend" },
                 OAuthToken: { Ref: "GitHubOAuthToken" },
                 PollForSourceChanges: false,
               },
@@ -340,10 +463,10 @@ const cicd =(config : any ) => ({
           ],
         },
         {
-          Name: "BuildAndDeploy",
+          Name: "Build",
           Actions: [
             {
-              Name: "BuildAndDeployAction",
+              Name: "BuildAction",
               InputArtifacts: [
                 {
                   Name: "SourceOutput",
@@ -356,7 +479,31 @@ const cicd =(config : any ) => ({
                 Provider: "CodeBuild",
               },
               Configuration: {
-                ProjectName: { Ref: "appFrontendCodeBuild" },
+                ProjectName: { Ref: "appBackendCodeBuild" },
+              },
+              RunOrder: 1,
+            },
+          ],
+        },
+        {
+          Name: "Deploy",
+          Actions: [
+            {
+              Name: "DeployAction",
+              InputArtifacts: [
+                {
+                  Name: "SourceOutput",
+                },
+              ],
+              ActionTypeId: {
+                Category: "Deploy",
+                Owner: "AWS",
+                Version: "1",
+                Provider: "CodeDeploy",
+              },
+              Configuration: {
+                ApplicationName: { Ref: "appCodeDeployApplicaton" },
+                DeploymentGroupName: { Ref: "appCodeDeployDeploymentGroup" },
               },
               RunOrder: 1,
             },
@@ -365,13 +512,10 @@ const cicd =(config : any ) => ({
       ],
       ArtifactStore: {
         Type: "S3",
-        Location: { Ref: "appFrontendCodePipelineArtifactStore" },
+        Location: { Ref: "appCodePipelineArtifactStore" },
       },
       Tags: [
-        {
-          Key: "Name",
-          Value: `${config.env}-${config.appName}FrontendCodePipeline`,
-        },
+        { Key: "Name", Value: `${config.env}-${config.appName}CodePipeline` },
         { Key: "Project", Value: config.appName },
         { Key: "Env", Value: config.env },
       ],
