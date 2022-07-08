@@ -1,4 +1,4 @@
-export default (config : any) => ({
+export default (config: any) => ({
   /*
     Frontend setup
       S3 bucket and CloudFront
@@ -7,7 +7,9 @@ export default (config : any) => ({
   appFrontendBucket: {
     Type: "AWS::S3::Bucket",
     Properties: {
-      AccessControl: "Private",
+      WebsiteConfiguration: {
+        IndexDocument: "index.html"
+      },
       BucketName: `${config.env}-${config.appName}-frontend-bucket`,
       Tags: [
         { Key: "Name", Value: `${config.env}-appFrontendBucket` },

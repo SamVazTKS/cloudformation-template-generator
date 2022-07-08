@@ -22,6 +22,7 @@
     },
     "GitHubOAuthToken": {
       "Type": "String",
+      "Default": "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",
       "NoEcho": true,
       "Description": "A GitHub Personal Access token of an account that has access to the backend and frontend repos"
     },
@@ -66,6 +67,135 @@
     }
   },
   "Resources": {
+    "appFrontendBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "WebsiteConfiguration": {
+          "IndexDocument": "index.html"
+        },
+        "BucketName": "dev-hire-frontend-bucket",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "dev-appFrontendBucket"
+          },
+          {
+            "Key": "Project",
+            "Value": "hire"
+          },
+          {
+            "Key": "Env",
+            "Value": "dev"
+          }
+        ]
+      },
+      "DeletionPolicy": "Delete"
+    },
+    "appFrontendOriginAccessIdentity": {
+      "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+      "Properties": {
+        "CloudFrontOriginAccessIdentityConfig": {
+          "Comment": "Allows CloudFront to access Private S3"
+        }
+      }
+    },
+    "appFrontendBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": "dev-hire-frontend-bucket",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": [
+                    "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${appFrontendOriginAccessIdentity}",
+                    {
+                      "appFrontendOriginAccessIdentity": {
+                        "Ref": "appFrontendOriginAccessIdentity"
+                      }
+                    }
+                  ]
+                }
+              },
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::dev-hire-frontend-bucket/*"
+            }
+          ]
+        }
+      }
+    },
+    "appFrontendDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Comment": "CDN for SPA",
+          "Aliases": [],
+          "Enabled": true,
+          "DefaultCacheBehavior": {
+            "Compress": true,
+            "ForwardedValues": {
+              "QueryString": true
+            },
+            "TargetOriginId": "only-origin",
+            "ViewerProtocolPolicy": "redirect-to-https"
+          },
+          "DefaultRootObject": "index.html",
+          "CustomErrorResponses": [
+            {
+              "ErrorCode": 404,
+              "ResponseCode": 200,
+              "ResponsePagePath": "/index.html"
+            },
+            {
+              "ErrorCode": 403,
+              "ResponseCode": 200,
+              "ResponsePagePath": "/index.html"
+            }
+          ],
+          "Origins": [
+            {
+              "S3OriginConfig": {
+                "OriginAccessIdentity": {
+                  "Fn::Sub": [
+                    "origin-access-identity/cloudfront/${appFrontendOriginAccessIdentity}",
+                    {
+                      "appFrontendOriginAccessIdentity": {
+                        "Ref": "appFrontendOriginAccessIdentity"
+                      }
+                    }
+                  ]
+                }
+              },
+              "DomainName": {
+                "Fn::GetAtt": [
+                  "appFrontendBucket",
+                  "DomainName"
+                ]
+              },
+              "Id": "only-origin"
+            }
+          ],
+          "PriceClass": "PriceClass_100"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "dev-appFrontendDistribution"
+          },
+          {
+            "Key": "Project",
+            "Value": "hire"
+          },
+          {
+            "Key": "Env",
+            "Value": "dev"
+          }
+        ]
+      }
+    },
     "appFrontendBuildRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -83,112 +213,6 @@
           "arn:aws:iam::aws:policy/AmazonS3FullAccess",
           "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
           "arn:aws:iam::aws:policy/CloudFrontFullAccess"
-        ]
-      }
-    },
-    "appFrontendCodeBuild": {
-      "Type": "AWS::CodeBuild::Project",
-      "Properties": {
-        "Name": "dev-hire-frontend",
-        "Description": "Builds and deploys dev-hire-frontend project",
-        "ServiceRole": {
-          "Fn::GetAtt": [
-            "appFrontendBuildRole",
-            "Arn"
-          ]
-        },
-        "Artifacts": {
-          "Type": "CODEPIPELINE"
-        },
-        "Environment": {
-          "Type": "LINUX_CONTAINER",
-          "ComputeType": "BUILD_GENERAL1_SMALL",
-          "Image": "aws/codebuild/standard:4.0",
-          "EnvironmentVariables": [
-            {
-              "Name": "S3_BUCKET_NAME",
-              "Type": "PLAINTEXT",
-              "Value": "dev-hire-frontend-bucket"
-            },
-            {
-              "Name": "REACT_APP_API_BASE_URL",
-              "Type": "PLAINTEXT",
-              "Value": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "https://",
-                    {
-                      "Ref": "APIUrl"
-                    },
-                    "/api/v1"
-                  ]
-                ]
-              }
-            },
-            {
-              "Name": "REACT_APP_BASE_URL",
-              "Type": "PLAINTEXT",
-              "Value": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "https://",
-                    {
-                      "Ref": "APIUrl"
-                    }
-                  ]
-                ]
-              }
-            }
-          ]
-        },
-        "Source": {
-          "Type": "CODEPIPELINE"
-        },
-        "SourceVersion": {
-          "Ref": "GitHubBranchFrontend"
-        },
-        "TimeoutInMinutes": 30,
-        "LogsConfig": {
-          "CloudWatchLogs": {
-            "Status": "ENABLED"
-          }
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "dev-hireFrontendCodeBuild"
-          },
-          {
-            "Key": "Project",
-            "Value": "hire"
-          },
-          {
-            "Key": "Env",
-            "Value": "dev"
-          }
-        ]
-      }
-    },
-    "appFrontendCodePipelineArtifactStore": {
-      "Type": "AWS::S3::Bucket",
-      "Properties": {
-        "BucketName": "dev-hire-frontend-codepipeline-artifactstore",
-        "AccessControl": "Private",
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "dev-hireFrontendCodePipelineArtifactStore"
-          },
-          {
-            "Key": "Project",
-            "Value": "hire"
-          },
-          {
-            "Key": "Env",
-            "Value": "dev"
-          }
         ]
       }
     },
@@ -385,33 +409,83 @@
         ]
       }
     },
-    "appFrontendCodePipelineWebhook": {
-      "Type": "AWS::CodePipeline::Webhook",
+    "appCodeBuildSourceCredential": {
+      "Type": "AWS::CodeBuild::SourceCredential",
       "Properties": {
-        "Authentication": "GITHUB_HMAC",
-        "AuthenticationConfiguration": {
-          "SecretToken": {
-            "Ref": "GitHubOAuthToken"
-          }
+        "AuthType": "PERSONAL_ACCESS_TOKEN",
+        "ServerType": "GITHUB",
+        "Token": {
+          "Ref": "GitHubOAuthToken"
         },
-        "Filters": [
-          {
-            "JsonPath": "$.ref",
-            "MatchEquals": "refs/heads/{Branch}"
-          }
-        ],
-        "TargetPipeline": {
-          "Ref": "appFrontendCodePipeline"
-        },
-        "TargetAction": "SourceAction",
-        "Name": "dev-hireFrontendCodePipelineWebhook",
-        "TargetPipelineVersion": {
+        "Username": {
+          "Ref": "GitHubOwner"
+        }
+      }
+    },
+    "appFrontendCodeBuild": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "Name": "dev-hire-frontend",
+        "Description": "Builds and deploys dev-hire-frontend project",
+        "ServiceRole": {
           "Fn::GetAtt": [
-            "appFrontendCodePipeline",
-            "Version"
+            "appFrontendBuildRole",
+            "Arn"
           ]
         },
-        "RegisterWithThirdParty": true
+        "Artifacts": {
+          "Type": "NO_ARTIFACTS"
+        },
+        "Environment": {
+          "Type": "LINUX_CONTAINER",
+          "ComputeType": "BUILD_GENERAL1_SMALL",
+          "Image": "aws/codebuild/standard:4.0"
+        },
+        "Source": {
+          "Type": "GITHUB",
+          "Location": "https://github.com/SamVazTKS/ksHireDummyClient",
+          "BuildSpec": "buildspec.yaml",
+          "Auth": {
+            "Type": "OAUTH",
+            "Resource": {
+              "Ref": "appCodeBuildSourceCredential"
+            }
+          }
+        },
+        "Triggers": {
+          "Webhook": true,
+          "FilterGroups": [
+            [
+              {
+                "Type": "EVENT",
+                "Pattern": "PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED"
+              }
+            ]
+          ]
+        },
+        "SourceVersion": {
+          "Ref": "GitHubBranchFrontend"
+        },
+        "TimeoutInMinutes": 30,
+        "LogsConfig": {
+          "CloudWatchLogs": {
+            "Status": "ENABLED"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "dev-hireFrontendCodeBuild"
+          },
+          {
+            "Key": "Project",
+            "Value": "hire"
+          },
+          {
+            "Key": "Env",
+            "Value": "dev"
+          }
+        ]
       }
     },
     "appFrontendCodePipeline": {
@@ -488,7 +562,7 @@
         "ArtifactStore": {
           "Type": "S3",
           "Location": {
-            "Ref": "appFrontendCodePipelineArtifactStore"
+            "Ref": "appFrontendBucket"
           }
         },
         "Tags": [

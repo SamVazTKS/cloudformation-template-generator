@@ -1,6 +1,6 @@
 import parameters from "./components/setup/parameters";
-import storage from "./components/setup/storage";
-import cicd  from "./components/frontend/cicd";
+import FrontendAPP  from "./components/frontend/index";
+import FrontendCICD  from "./components/frontend/cicd";
 
 const mernStack = async (config : any ) => ({
     AWSTemplateFormatVersion: "2010-09-09",
@@ -9,7 +9,8 @@ const mernStack = async (config : any ) => ({
     Resources: {
     //  ...storage(config),
     //   ...server(config),
-       ...cicd(config),
+       ...FrontendAPP(config),
+       ...FrontendCICD(config),
     //   ...(config.useRdsDB ? db(config) : {}),
       // ...(config.backup ? backup(config) : {}),
     //   ...frontend(config),
