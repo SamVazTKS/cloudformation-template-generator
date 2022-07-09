@@ -22,7 +22,7 @@
     },
     "GitHubOAuthToken": {
       "Type": "String",
-      "Default": "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",
+      "Default": "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",
       "NoEcho": true,
       "Description": "A GitHub Personal Access token of an account that has access to the backend and frontend repos"
     },
@@ -459,6 +459,10 @@
               {
                 "Type": "EVENT",
                 "Pattern": "PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED"
+              },
+              {
+                "Type": "BASE_REF",
+                "Pattern": "^refs/heads/develop$"
               }
             ]
           ]

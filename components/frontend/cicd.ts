@@ -11,12 +11,12 @@ const cicd = (config: any) => ({
   appFrontendCodePipelineServiceRole: codePipeLineRole,
 
   appCodeBuildSourceCredential: {
-    Type : "AWS::CodeBuild::SourceCredential",
-    Properties : {
-      AuthType : "PERSONAL_ACCESS_TOKEN",
-      ServerType : "GITHUB",
-      Token : { Ref: "GitHubOAuthToken" },
-      Username : { Ref: "GitHubOwner" }
+    Type: "AWS::CodeBuild::SourceCredential",
+    Properties: {
+      AuthType: "PERSONAL_ACCESS_TOKEN",
+      ServerType: "GITHUB",
+      Token: { Ref: "GitHubOAuthToken" },
+      Username: { Ref: "GitHubOwner" }
     }
   },
 
@@ -71,10 +71,17 @@ const cicd = (config: any) => ({
       },
       Triggers: {
         Webhook: true,
-        FilterGroups: [[{
-          Type: "EVENT",
-          Pattern: "PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED"
-        }]]
+        FilterGroups: [[
+          {
+            Type: "EVENT",
+            Pattern: "PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED, PULL_REQUEST_REOPENED, PULL_REQUEST_MERGED"
+          }, 
+          { 
+            Type: "BASE_REF", 
+            Pattern: `^refs/heads/${config.frontendBranch}$`
+          }
+         ]
+        ]
       },
       SourceVersion: { Ref: "GitHubBranchFrontend" },
       TimeoutInMinutes: 30,
