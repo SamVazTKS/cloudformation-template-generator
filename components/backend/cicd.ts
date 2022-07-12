@@ -69,7 +69,7 @@ const cicd =(config : any ) => ({
       Description: `Builds ${config.appName} Docker image`,
       ServiceRole: { "Fn::GetAtt": ["appBackendBuildRole", "Arn"] },
       Artifacts: {
-        Type: "CODEPIPELINE",
+        Type: "NO_ARTIFACTS",
       },
       Environment: {
         Type: "LINUX_CONTAINER",
@@ -215,30 +215,30 @@ const cicd =(config : any ) => ({
     },
   },
 
-  appCodePipelineWebhook: {
-    Type: "AWS::CodePipeline::Webhook",
-    Properties: {
-      Authentication: "GITHUB_HMAC",
-      AuthenticationConfiguration: {
-        SecretToken: { Ref: "GitHubOAuthToken" },
-      },
-      Filters: [
-        {
-          JsonPath: "$.ref",
-          MatchEquals: "refs/heads/{Branch}",
-        },
-      ],
-      TargetPipeline: {
-        Ref: "appCodePipeline",
-      },
-      TargetAction: "SourceAction",
-      Name: `${config.env}-${config.appName}CodePipelineWebhook`,
-      TargetPipelineVersion: {
-        "Fn::GetAtt": ["appCodePipeline", "Version"],
-      },
-      RegisterWithThirdParty: true,
-    },
-  },
+  // appCodePipelineWebhook: {
+  //   Type: "AWS::CodePipeline::Webhook",
+  //   Properties: {
+  //     Authentication: "GITHUB_HMAC",
+  //     AuthenticationConfiguration: {
+  //       SecretToken: { Ref: "GitHubOAuthToken" },
+  //     },
+  //     Filters: [
+  //       {
+  //         JsonPath: "$.ref",
+  //         MatchEquals: "refs/heads/{Branch}",
+  //       },
+  //     ],
+  //     TargetPipeline: {
+  //       Ref: "appCodePipeline",
+  //     },
+  //     TargetAction: "SourceAction",
+  //     Name: `${config.env}-${config.appName}CodePipelineWebhook`,
+  //     TargetPipelineVersion: {
+  //       "Fn::GetAtt": ["appCodePipeline", "Version"],
+  //     },
+  //     RegisterWithThirdParty: true,
+  //   },
+  // },
 
   appCodePipeline: {
     Type: "AWS::CodePipeline::Pipeline",
