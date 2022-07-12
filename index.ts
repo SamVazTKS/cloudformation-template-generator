@@ -16,14 +16,14 @@ async function main() {
     `cloudformation-templates-output/template.dev.json`,
     JSON.stringify(await template(configDev), null, 2),
   );
-  fs.writeFileSync(
-    `cloudformation-templates-output/template.qa.json`,
-    JSON.stringify(await template(configQa), null, 2),
-  );
-  fs.writeFileSync(
-    `cloudformation-templates-output/template.prod.json`,
-    JSON.stringify(await template(configProd), null, 2),
-  );
+  // fs.writeFileSync(
+  //   `cloudformation-templates-output/template.qa.json`,
+  //   JSON.stringify(await template(configQa), null, 2),
+  // );
+  // fs.writeFileSync(
+  //   `cloudformation-templates-output/template.prod.json`,
+  //   JSON.stringify(await template(configProd), null, 2),
+  // );
 }
 
 main();

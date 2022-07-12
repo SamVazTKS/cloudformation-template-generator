@@ -1,5 +1,6 @@
 import parameters from "./components/setup/parameters";
 import storage from "./components/setup/storage";
+import general from "./components/setup/index";
 import FrontendAPP  from "./components/frontend/index";
 import FrontendCICD  from "./components/frontend/cicd";
 import BackendCICD from "./components/backend/cicd";
@@ -11,10 +12,11 @@ const mernStack = async (config : any ) => ({
   Description: `Base Environment Configuration for basic MERN stack`,
   Parameters: await parameters(config),
   Resources: {
+    ...general(config),
     ...storage(config),
   //   ...server(config),
-    ...FrontendAPP(config),
-    ...FrontendCICD(config),
+  //  ...FrontendAPP(config),
+  //  ...FrontendCICD(config),
     ...BackendAPP(config),
     ...BackendCICD(config),
   //   ...(config.useRdsDB ? db(config) : {}),
