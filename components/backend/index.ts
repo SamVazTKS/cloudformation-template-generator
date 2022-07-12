@@ -1,6 +1,7 @@
 "use strict";
 
-const fs = require("fs");
+import fs from "fs";
+import serverRole from "./roles/appServerRole";
 
 const dotEnv = fs.readFileSync("./.env.server").toString();
 
@@ -10,48 +11,7 @@ export default (config : any) => ({
       EC2 instance for running the backend
   */
 
-  appServerRole: {
-    Type: "AWS::IAM::Role",
-    Properties: {
-      AssumeRolePolicyDocument: {
-        Version: "2012-10-17",
-        Statement: {
-          Effect: "Allow",
-          Principal: {
-            Service: "ec2.amazonaws.com",
-          },
-          Action: "sts:AssumeRole",
-        },
-      },
-      Policies: [
-        {
-          PolicyName: "root",
-          PolicyDocument: {
-            Version: "2012-10-17",
-            Statement: [
-              {
-                Action: [
-                  "ecr:BatchCheckLayerAvailability",
-                  "ecr:CompleteLayerUpload",
-                  "ecr:GetAuthorizationToken",
-                  "ecr:InitiateLayerUpload",
-                  "ecr:PutImage",
-                  "ecr:UploadLayerPart",
-                  "s3:Get*",
-                  "s3:List*",
-                ],
-                Resource: "*",
-                Effect: "Allow",
-              },
-            ],
-          },
-        },
-      ],
-      ManagedPolicyArns: [
-        "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
-      ],
-    },
-  },
+  appServerRole: serverRole,
 
   appServerInstanceProfile: {
     Type: "AWS::IAM::InstanceProfile",

@@ -85,12 +85,17 @@ const cicd =(config : any ) => ({
           {
             Name: "IMAGE_TAG",
             Type: "PLAINTEXT",
-            Value: `latest`,
+            Value: `dummy`,
           },
           {
             Name: "AWS_ACCOUNT_ID",
             Type: "PLAINTEXT",
             Value: { Ref: "AwsAccountId" },
+          },
+          {
+            Name: "AWS_REGION",
+            Type: "PLAINTEXT",
+            Value: { Ref: "AwsRegion" },
           },
           {
             Name: "SSH_KEY",
@@ -109,8 +114,38 @@ const cicd =(config : any ) => ({
           },
         ],
       },
+      // Source: {
+      //   Type: "CODEPIPELINE",
+      // },
+      // SourceVersion: { Ref: "GitHubBranchBackend" },
+      // TimeoutInMinutes: 30,
+      // LogsConfig: {
+      //   CloudWatchLogs: {
+      //     Status: "ENABLED",
+      //   },
+      // },
       Source: {
-        Type: "CODEPIPELINE",
+        Type: "GITHUB",
+        Location: `https://github.com/${config.gitHubOwner}/${config.gitHubRepoBackend}`,
+        BuildSpec: "buildspec.yaml",
+        Auth: {
+          Type: "OAUTH",
+          Resource: { Ref: "appCodeBuildSourceCredential" }
+        }
+      },
+      Triggers: {
+        Webhook: true,
+        FilterGroups: [[
+          {
+            Type: "EVENT",
+            Pattern: "PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED, PULL_REQUEST_REOPENED, PULL_REQUEST_MERGED"
+          }, 
+          { 
+            Type: "BASE_REF", 
+            Pattern: `^refs/heads/${config.frontendBranch}$`
+          }
+         ]
+        ]
       },
       SourceVersion: { Ref: "GitHubBranchBackend" },
       TimeoutInMinutes: 30,

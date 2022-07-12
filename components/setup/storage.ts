@@ -3,7 +3,7 @@ const s3BucketResource = (config : any) => ({
   appFilesBucket: {
     Type: "AWS::S3::Bucket",
     Properties: {
-      AccessControl: "Public",
+      AccessControl: "PublicReadWrite",
       BucketName: `${config.env}-${config.appName}-deploy-bucket`,
       CorsConfiguration: {
         CorsRules: [
