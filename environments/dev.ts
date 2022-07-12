@@ -5,11 +5,10 @@ export const config = {
   //serverSSHAccessIp: "186.96.182.141/32",
   //Ip MUST BE a range
   serverSSHAccessIp: "0.0.0.0/0",
-  serverSSHKeyPair: "dummy backend cloudformation github",
+  serverSSHKeyPair: "hire app server key",
   awsRegion: "us-east-2",
   awsAccountId: "727499554548",
   gitHubOAuthToken: "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",
-  //gitHubOAuthToken: "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",
   gitSSHKey: fs.readFileSync("id_ksquare_gitHub").toString(),
   gitHubOwner: "SamVazTKS",
   gitHubRepoBackend: "ksHireDummyBackend",
