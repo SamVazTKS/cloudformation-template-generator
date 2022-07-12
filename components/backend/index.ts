@@ -171,7 +171,8 @@ apt-get -y update && apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::O
     },
 
     Properties: {
-      ImageId: "ami-00399ec92321828f5",
+      //ImageId: "ami-00399ec92321828f5",
+      ImageId: "ami-052efd3df9dad4825",//Ubuntu 22 LTS us-east-1 North Virginia
       KeyName: { Ref: "ServerSSHKeyPair" },
       InstanceType: "t3a.small",
       IamInstanceProfile: { Ref: "appServerInstanceProfile" },
