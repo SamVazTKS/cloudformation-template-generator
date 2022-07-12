@@ -54,7 +54,7 @@ const cicd = (config: any) => ({
       },
       Source: {
         Type: "GITHUB",
-        Location: "https://github.com/SamVazTKS/ksHireDummyClient",
+        Location: `https://github.com/${config.gitHubOwner}/${config.gitHubRepoFrontend}`,
         BuildSpec: "buildspec.yaml",
         Auth: {
           Type: "OAUTH",
