@@ -164,7 +164,7 @@ echo "export IMAGE_REPO_NAME=${config.env}-${config.appName}-backend" >> /home/u
               command: `
 export DEBIAN_FRONTEND=noninteractive
 export DEBIAN_PRIORITY=critical
-apt-get -y update && apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" upgrade`,
+sudo apt-get -y update && sudo apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" upgrade`,
             },
           },
         },
