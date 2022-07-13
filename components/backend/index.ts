@@ -172,7 +172,7 @@ apt-get -y update && apt-get -y -o "Dpkg::Options::=--force-confdef" -o "Dpkg::O
 
     Properties: {
       //ImageId: "ami-00399ec92321828f5",
-      ImageId: "ami-052efd3df9dad4825",//Ubuntu 22 LTS us-east-1 North Virginia
+      ImageId: "ami-0960ab670c8bb45f3",//Ubuntu Server 20.04 LTS (HVM), SSD Volume Type us-east-2
       KeyName: { Ref: "ServerSSHKeyPair" },
       InstanceType: "t3a.small",
       IamInstanceProfile: { Ref: "appServerInstanceProfile" },
