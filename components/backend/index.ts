@@ -112,6 +112,7 @@ sudo ufw default allow outgoing
 sudo ufw allow ssh
 sudo ufw allow http
 sudo ufw allow https
+sudo ufw allow 8000
 sudo ufw --force enable`,
             },
             "04_setup_srv_folder": {
@@ -130,8 +131,8 @@ sudo ./install auto > /tmp/logfile
               command: {
                 "Fn::Sub": [
                   `
-echo "export AWS_REGION=\${AwsRegion}" >> /home/ubuntu/.bashrc
-echo "export AWS_ACCOUNT_ID=\${AwsAccountId}" >> /home/ubuntu/.bashrc
+echo "export AWS_REGION=${config.awsRegion}" >> /home/ubuntu/.bashrc
+echo "export AWS_ACCOUNT_ID=${config.awsAccountId}" >> /home/ubuntu/.bashrc
 echo "export IMAGE_REPO_NAME=${config.env}-${config.appName}-backend" >> /home/ubuntu/.bashrc
               `,
                   {
@@ -146,9 +147,9 @@ echo "export IMAGE_REPO_NAME=${config.env}-${config.appName}-backend" >> /home/u
                 "Fn::Sub": [
                   `
 touch /home/ubuntu/.env
-echo "export AWS_REGION=\${AwsRegion}" >> /home/ubuntu/.env
-echo "export AWS_ACCOUNT_ID=\${AwsAccountId}" >> /home/ubuntu/.env
-echo "export CODEDEPLOY_START_CMD=\\"\${CodedeployStartCmd}\\"" >> /home/ubuntu/.env
+echo "export AWS_REGION=${config.awsRegion}" >> /home/ubuntu/.env
+echo "export AWS_ACCOUNT_ID=${config.awsAccountId}" >> /home/ubuntu/.env
+echo "export CODEDEPLOY_START_CMD=\\"${config.codedeployStartCmd}\\"" >> /home/ubuntu/.env
 echo "export IMAGE_REPO_NAME=${config.env}-${config.appName}-backend" >> /home/ubuntu/.env
               `,
                   {
