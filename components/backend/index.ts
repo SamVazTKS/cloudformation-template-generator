@@ -122,6 +122,7 @@ export default (config : any) => ({
               "         --region ",
               { Ref: "AWS::Region" },
               " > /home/ubuntu/cfn-init.log ",
+              " 2> /home/ubuntu/cfn-init.err ",
               "\n",
               
               "/opt/aws/bin/cfn-signal -e $? ",
@@ -131,6 +132,7 @@ export default (config : any) => ({
               "         --region ",
               { Ref: "AWS::Region" },
               " > /home/ubuntu/cfn-signal.log ",
+              " 2> /home/ubuntu/cfn-signal.err ",
               "\n",
             ],
           ],
