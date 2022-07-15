@@ -6,7 +6,7 @@ export const config = {
   //serverSSHKeyPair: "kportal-dev",
   awsRegion: "us-east-2",
   //awsAccountId: "709269308530",
-  //gitHubOAuthToken: "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",
+  //gitHubOAuthToken: "",
   //gitSSHKey: fs.readFileSync("./../id_rsa").toString(),
   gitHubOwner: "Ksquare-University",
   //gitHubRepoBackend: "kportal-back",
