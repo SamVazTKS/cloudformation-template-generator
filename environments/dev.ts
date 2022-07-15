@@ -8,7 +8,7 @@ export const config = {
   serverSSHKeyPair: "hire app server key",
   awsRegion: "us-east-2",
   awsAccountId: "727499554548",
-  gitHubOAuthToken: "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",
+  gitHubOAuthToken: "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",
   gitSSHKey: fs.readFileSync("id_ksquare_gitHub").toString(),
   gitHubOwner: "SamVazTKS",
   gitHubRepoBackend: "ksHireDummyBackend",

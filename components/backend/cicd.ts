@@ -2,7 +2,7 @@ import backendBuldRole from "./roles/appBackendBuildRole";
 import codeDeployServiceRole from "./roles/appCodeDeployServiceRole";
 import codePipelineServiceRole from "./roles/appCodePipelineServiceRole";
 
-const cicd =(config : any ) => ({
+const cicd = (config: any) => ({
 
   /*
     Roles
@@ -16,9 +16,9 @@ const cicd =(config : any ) => ({
   //CodePipeline
   appCodePipelineServiceRole: codePipelineServiceRole,
 
-    /*
-    CI/CD Setup
-  */
+  /*
+  CI/CD Setup
+*/
 
   // ECR - Hosts the Docker images for the app
   appContainerRepository: {
@@ -133,20 +133,6 @@ const cicd =(config : any ) => ({
           Resource: { Ref: "appCodeBuildSourceCredential" }
         }
       },
-      Triggers: {
-        Webhook: true,
-        FilterGroups: [[
-          {
-            Type: "EVENT",
-            Pattern: "PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED, PULL_REQUEST_REOPENED, PULL_REQUEST_MERGED"
-          }, 
-          { 
-            Type: "BASE_REF", 
-            Pattern: `^refs/heads/${config.frontendBranch}$`
-          }
-         ]
-        ]
-      },
       SourceVersion: { Ref: "GitHubBranchBackend" },
       TimeoutInMinutes: 30,
       LogsConfig: {
@@ -214,31 +200,6 @@ const cicd =(config : any ) => ({
       ],
     },
   },
-
-  // appCodePipelineWebhook: {
-  //   Type: "AWS::CodePipeline::Webhook",
-  //   Properties: {
-  //     Authentication: "GITHUB_HMAC",
-  //     AuthenticationConfiguration: {
-  //       SecretToken: { Ref: "GitHubOAuthToken" },
-  //     },
-  //     Filters: [
-  //       {
-  //         JsonPath: "$.ref",
-  //         MatchEquals: "refs/heads/{Branch}",
-  //       },
-  //     ],
-  //     TargetPipeline: {
-  //       Ref: "appCodePipeline",
-  //     },
-  //     TargetAction: "SourceAction",
-  //     Name: `${config.env}-${config.appName}CodePipelineWebhook`,
-  //     TargetPipelineVersion: {
-  //       "Fn::GetAtt": ["appCodePipeline", "Version"],
-  //     },
-  //     RegisterWithThirdParty: true,
-  //   },
-  // },
 
   appCodePipeline: {
     Type: "AWS::CodePipeline::Pipeline",
@@ -325,6 +286,31 @@ const cicd =(config : any ) => ({
         { Key: "Project", Value: config.appName },
         { Key: "Env", Value: config.env },
       ],
+    },
+  },
+
+  appCodePipelineWebhook: {
+    Type: "AWS::CodePipeline::Webhook",
+    Properties: {
+      Authentication: "GITHUB_HMAC",
+      AuthenticationConfiguration: {
+        SecretToken: { Ref: "GitHubOAuthToken" },
+      },
+      Filters: [
+        {
+          JsonPath: "$.ref",
+          MatchEquals: `refs/heads/${config.backendBranch}`,
+        },
+      ],
+      TargetPipeline: {
+        Ref: "appCodePipeline",
+      },
+      TargetAction: "SourceAction",
+      Name: `${config.env}-${config.appName}CodePipelineWebhook`,
+      TargetPipelineVersion: {
+        "Fn::GetAtt": ["appCodePipeline", "Version"],
+      },
+      RegisterWithThirdParty: true,
     },
   },
 });
