@@ -24,7 +24,7 @@ const cicd = (config: any) => ({
       Environment: {
         Type: "LINUX_CONTAINER",
         ComputeType: "BUILD_GENERAL1_SMALL",
-        Image: "aws/codebuild/standard:4.0",
+        Image: "aws/codebuild/amazonlinux2-x86_64-standard:3.0",
         // EnvironmentVariables: [
         //   {
         //      Name: "CLOUDFRONT_DIST_ID",
@@ -61,20 +61,20 @@ const cicd = (config: any) => ({
           Resource: { Ref: "appCodeBuildSourceCredential" }
         }
       },
-      Triggers: {
-        Webhook: true,
-        FilterGroups: [[
-          {
-            Type: "EVENT",
-            Pattern: "PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED, PULL_REQUEST_REOPENED, PULL_REQUEST_MERGED"
-          }, 
-          { 
-            Type: "BASE_REF", 
-            Pattern: `^refs/heads/${config.frontendBranch}$`
-          }
-         ]
-        ]
-      },
+      // Triggers: {
+      //   Webhook: true,
+      //   FilterGroups: [[
+      //     {
+      //       Type: "EVENT",
+      //       Pattern: "PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED, PULL_REQUEST_REOPENED, PULL_REQUEST_MERGED"
+      //     },
+      //     {
+      //       Type: "BASE_REF",
+      //       Pattern: `^refs/heads/${config.frontendBranch}$`
+      //     }
+      //   ]
+      //   ]
+      // },
       SourceVersion: { Ref: "GitHubBranchFrontend" },
       TimeoutInMinutes: 30,
       LogsConfig: {
@@ -107,33 +107,6 @@ const cicd = (config: any) => ({
   //       { Key: "Project", Value: config.appName },
   //       { Key: "Env", Value: config.env },
   //     ],
-  //   },
-  // },
-
-
-
-  // appFrontendCodePipelineWebhook: {
-  //   Type: "AWS::CodePipeline::Webhook",
-  //   Properties: {
-  //     Authentication: "GITHUB_HMAC",
-  //     AuthenticationConfiguration: {
-  //       SecretToken: '{{resolve:secretmanager:GITHUB_ACCESS:SecretString:gitHubOAuthToken}}',
-  //     },
-  //     Filters: [
-  //       {
-  //         JsonPath: "$.ref",
-  //         MatchEquals: "refs/heads/{Branch}",
-  //       },
-  //     ],
-  //     TargetPipeline: {
-  //       Ref: "appFrontendCodePipeline",
-  //     },
-  //     TargetAction: "SourceAction",
-  //     Name: `${config.env}-${config.appName}FrontendCodePipelineWebhook`,
-  //     TargetPipelineVersion: {
-  //       "Fn::GetAtt": ["appFrontendCodePipeline", "Version"],
-  //     },
-  //     RegisterWithThirdParty: true,
   //   },
   // },
 
@@ -201,6 +174,30 @@ const cicd = (config: any) => ({
         { Key: "Project", Value: config.appName },
         { Key: "Env", Value: config.env },
       ],
+    },
+  },
+  appCodePipelineWebhookFront: {
+    Type: "AWS::CodePipeline::Webhook",
+    Properties: {
+      Authentication: "GITHUB_HMAC",
+      AuthenticationConfiguration: {
+        SecretToken: { Ref: "GitHubOAuthToken" },
+      },
+      Filters: [
+        {
+          JsonPath: "$.ref",
+          MatchEquals: `refs/heads/${config.frontendBranch}`,
+        },
+      ],
+      TargetPipeline: {
+        Ref: "appFrontendCodePipeline",
+      },
+      TargetAction: "SourceAction",
+      Name: `${config.env}-${config.appName}CodePipelineWebhookFront`,
+      TargetPipelineVersion: {
+        "Fn::GetAtt": ["appFrontendCodePipeline", "Version"],
+      },
+      RegisterWithThirdParty: true,
     },
   },
 });
