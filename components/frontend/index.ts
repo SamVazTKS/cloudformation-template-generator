@@ -8,7 +8,8 @@ export default (config: any) => ({
     Type: "AWS::S3::Bucket",
     Properties: {
       WebsiteConfiguration: {
-        IndexDocument: "index.html"
+        IndexDocument: "index.html",
+        ErrorDocument: "index.html",
       },
       BucketName: `${config.env}-${config.appName}-frontend-bucket`,
       Tags: [
